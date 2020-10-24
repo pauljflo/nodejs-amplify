@@ -1,70 +1,94 @@
-# Getting Started with Create React App
+What we will create:
+A DynamoDB database with schemas managed by Amplify SDK
+An AppSync GraphQL API
+Frontend site hosted in S3 with Cloudfront CDN and SSL
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+Setting up the environment
 
-In the project directory, you can run:
+First begin by Installing the Amplify CLI globally npm i -g @aws-amplify/cli
+Then in your working directory create a React app in the usual way                  	 npx create-react-app aws-amplify-swanson
+Now you can move into new working directory aws-amplify-swanson and initialise Amplify with amplify init 
+You can configure Auth here or use a profile from ~/.aws/credentials.
 
-### `yarn start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Once this has completed you have access to  the following commands:
+amplify {category} add - will allow you to add features like user login or a backend API
+amplify status - shows what you've added already and if it's locally configured or deployed
+amplify push - will build all your local backend resources and provision it in the cloud
+amplify publish - will build all your local backend and frontend resources (if you have hosting category added) and provision it in the cloud
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
 
-### `yarn test`
+The GraphQL API
+Now an API of some kind is required to expose our data. Traditionally we might have created a database with RDS, then create some middleware to perform operations on the data, but because we are using Amplify this whole process is handled nicely for us.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+We will add a Graphql API by running amplify add api
 
-### `yarn build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Selecting Y for the last option will launch VSCode and allow you to edit the schema.
+For this Swanson quotes API we only need 2 fields, an ID and the quote itself. 
+Once you have designed your schema you can update the database with 
+amplify push
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+You will also want to generate the Graphql code automatically. The defaults should be fine.
 
-### `yarn eject`
+This may take a while to complete as it is triggering a cloudformation script which inturn builds out the infrastructure for your backend. It will also generate the connection strings and queries for your application and add them to your React project.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Once the rollout completes you will be presented with an API Key as well as the GraphQL endpoint.  These can also be found in src/aws-exports.js
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Now it gets exciting - head over to AWS AppSync and you ill find your DynamoDB and GraphQL API
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Navigate to the Queries panel and you can start to run your own mutations to populate the API with sample data.
 
-## Learn More
+You can find what your mutations should look like in src/graphql/mutations.js
+Once you have inserted your data you can view it all in the DynamoDB console as well. This is the data that will be served over the GraphQL endpoint.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+And that’s the backend configured. We have just created a new AppSync API and DynamoDB database in a few simple commands and are now ready to look at frontend hosting.
 
-### Code Splitting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-### Analyzing the Bundle Size
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Simple React Test
 
-### Making a Progressive Web App
+I have created a very simple App.js that will print out the quote returned from a graphql query - Arguably Lambda triggers should be used to randomly grab a row from Dynamo, but as we have a small sample size I’ll just use a dirty Math() function. 
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+You can find this sample app at: https://github.com/pauljflo/nodejs-amplify
 
-### Advanced Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+If you have been following along and using the example frontend, you will be able to  build and run the app with npm install && npm run start your browser should load up and you will be able to see a quote which is pulled via the AppSync API. Essentially magic. 
+This is the application running on your local machine and authenticating with the GraphQL API in AWS. All of this is managed by the Amplify SDK for you. 
 
-### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Deploying to AWS
 
-### `yarn build` fails to minify
+The final part of this guide is to add static hosting for our frontend app which again is fully managed by Amplify -  amplify hosting add
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+As this is a simple React SPA I have selected to deploy to S3 and to utilise Cloudfront to provide HTTPS access. This is a really low latency, low cost hosting option for static websites. Name the S3 bucket as you like, or leave it as the default. 
+You have now configured your deployments.
+
+
+
+When you are ready to deploy, simply type amplify publish and AWS Amplify will handle the rest.
+
+Here you can see it will add s3 and cloudfront hosting, the API has no changes pending.
+
+Once cloudformation has deployed all of the infrastructure, your React project will be built and automatically uploaded to S3. 
+
+You will see the cloudfront endpoint listed at the bottom, where you will be able to view your application in AWS. As CloudFront is a global resource, it may take a little while for the endpoint to resolve correctly if this is a new deployment. 
+
+
+
+
+
+If you would like to remove all of these resources afterwards you can use
+ amplify delete
+
+Amplify - FullStack Solutions for FrontEnd Developers
+AWS Amplify is a fantastic framework to rapidly build new web applications.It reduces the overhead and complexity of managing infrastructure and introduces alot of serverless-like concepts. It seems ideal for start-ups in a rapid development phase or independent developers who want to focus on app design and functionality over infrastructure optimisation and management. 
+
+It also feels pretty cool.
+
+
