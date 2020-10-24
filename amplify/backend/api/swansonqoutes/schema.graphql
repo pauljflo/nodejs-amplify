@@ -1,0 +1,4 @@
+type Quote @model {
+  id: ID!
+  quote: String!
+}
